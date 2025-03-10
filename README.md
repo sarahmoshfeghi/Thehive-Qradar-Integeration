@@ -13,7 +13,7 @@ The core functionality is handled by **smart_cloner.py**, which runs as a schedu
 
 ## **Installation & Configuration**
 
-### **1. Update Configuration File and install dependency **
+### **1. Update Configuration File and install dependency**
 Modify the **conf/smartclonner.conf** file with your environment-specific values:
 
 #### **Install Dependencies:**
