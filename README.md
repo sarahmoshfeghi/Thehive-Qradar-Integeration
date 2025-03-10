@@ -67,13 +67,10 @@ sudo systemctl start thehive-qradar.timer
 ```
 
 ## **Differences from the Original Project**
-This project is a fork of [Pierre Barlet’s qradar2thehive](https://github.com/pierrebarlet/qradar2thehive) with key modifications:
-✅ **Creates Alerts instead of Cases**: Unlike the original script, which creates cases with a static task list, this version generates alerts in TheHive, allowing users to convert them into cases with their own templates.
-✅ **Modular & Configurable**: Uses a structured configuration file for flexibility in API and service settings.
+This project is a fork of [Pierre Barlet’s qradar2thehive](https://github.com/pierrebarlet/qradar2thehive) with some modifications:
 ✅ **Service-Based Execution**: Designed to run as a scheduled service every hour for continuous operation.
 
 ## **Future Enhancements**
-- Integration with **MISP** to enrich QRadar offenses with additional threat intelligence.
 - Support for additional alert customization and filtering.
 - Web-based UI for configuration management.
 
