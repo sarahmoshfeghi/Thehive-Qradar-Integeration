@@ -1,7 +1,8 @@
+
 #!/usr/bin/env python3
 # -*- coding: utf8 -*-
-
-import os, sys
+import os
+import sys
 import logging
 import copy
 import json
@@ -29,48 +30,44 @@ def enrichOffense(qradarConnector, offense):
     enriched['offense_type_str'] = \
                 qradarConnector.getOffenseTypeStr(offense['offense_type'])
 
-    # Add the offense source explicitly 
+    # Add the offense source explicitly
     if enriched['offense_type_str'] == 'Username':
-        artifacts.append({'data':offense['offense_source'], 'dataType':'username', 'message':'Offense Source'})
+        artifacts.append({'data': offense['offense_source'], 'dataType': 'username', 'message': 'Offense Source'})
+    else:
+        # Assume offense_source is an IP if not a username
+        artifacts.append({'data': offense['offense_source'], 'dataType': 'ip', 'message': 'Offense Source', 'tags': ['src']})
 
     # Add the local and remote sources
-    #scrIps contains offense source IPs
-    srcIps = list()
-    #dstIps contains offense destination IPs
-    dstIps = list()
-    #srcDstIps contains IPs which are both source and destination of offense
-    srcDstIps = list()
-    for ip in qradarConnector.getSourceIPs(enriched):
-        srcIps.append(ip)
-
-    for ip in qradarConnector.getLocalDestinationIPs(enriched):
-        dstIps.append(ip)
-
-    #making copies is needed since we want to
-    #access and delete data from the list at the same time
-    s = copy.deepcopy(srcIps)
-    d = copy.deepcopy(dstIps)
-
-    for srcIp in s:
-        for dstIp in d:
-            if srcIp == dstIp:
-                srcDstIps.append(srcIp)
-                srcIps.remove(srcIp)
-                dstIps.remove(dstIp)
+    srcIps = qradarConnector.getSourceIPs(enriched)
+    dstIps = qradarConnector.getLocalDestinationIPs(enriched)
+    srcDstIps = list(set(srcIps) & set(dstIps))
+    srcIps = list(set(srcIps) - set(srcDstIps))
+    dstIps = list(set(dstIps) - set(srcDstIps))
 
     for ip in srcIps:
-        artifacts.append({'data':ip, 'dataType':'ip', 'message':'Source IP', 'tags':['src']})
+        artifacts.append({'data': ip, 'dataType': 'ip', 'message': 'Source IP', 'tags': ['src']})
     for ip in dstIps:
-        artifacts.append({'data':ip, 'dataType':'ip', 'message':'Local destination IP', 'tags':['dst']})
+        artifacts.append({'data': ip, 'dataType': 'ip', 'message': 'Local destination IP', 'tags': ['dst']})
     for ip in srcDstIps:
-        artifacts.append({'data':ip, 'dataType':'ip', 'message':'Source and local destination IP', 'tags':['src', 'dst']})
-        
+        artifacts.append({'data': ip, 'dataType': 'ip', 'message': 'Source and local destination IP', 'tags': ['src', 'dst']})
+
+    # Define default observable data types
+    defaultObservableDatatype = ['autonomous-system', 'domain', 'file', 'filename', 'fqdn', 'hash', 'ip', 'mail', 'mail_subject', 'other', 'regexp', 'registry', 'uri_path', 'url', 'user-agent']
+
+    # Check and add observables for each data type if they exist in the offense data
+    for dataType in defaultObservableDatatype:
+        if dataType in offense:
+            artifacts.append({'data': offense[dataType], 'dataType': dataType, 'message': dataType})
+        # Additionally check in the enriched data
+        if dataType in enriched:
+            artifacts.append({'data': enriched[dataType], 'dataType': dataType, 'message': dataType})
+
     # Add all the observables
     enriched['artifacts'] = artifacts
 
     # waiting 1s to make sure the logs are searchable
     sleep(1)
-    #adding the first 3 raw logs
+    # adding the first 3 raw logs
     enriched['logs'] = qradarConnector.getOffenseLogs(enriched)
 
     return enriched
@@ -78,18 +75,17 @@ def enrichOffense(qradarConnector, offense):
 def qradarOffenseToHiveAlert(theHiveConnector, offense):
 
     def getHiveSeverity(offense):
-        #severity in TheHive is either low, medium or high
-        #while severity in QRadar is from 1 to 10
-        #low will be [1;4] => 1
-        #medium will be [5;6] => 2
-        #high will be [7;10] => 3
+        # severity in TheHive is either low, medium or high
+        # while severity in QRadar is from 1 to 10
+        # low will be [1;4] => 1
+        # medium will be [5;6] => 2
+        # high will be [7;10] => 3
         if offense['severity'] < 5:
             return 1
         elif offense['severity'] < 7:
             return 2
         elif offense['severity'] < 11:
             return 3
-
         return 1
 
     #
@@ -98,31 +94,17 @@ def qradarOffenseToHiveAlert(theHiveConnector, offense):
 
     # Setup Tags
     tags = ['QRadar', 'Offense']
-    
+
     if "categories" in offense:
         for cat in offense['categories']:
             tags.append(cat)
 
-    defaultObservableDatatype = ['autonomous-system',
-                                'domain',
-                                'file',
-                                'filename',
-                                'fqdn',
-                                'hash',
-                                'ip',
-                                'mail',
-                                'mail_subject',
-                                'other',
-                                'regexp',
-                                'registry',
-                                'uri_path',
-                                'url',
-                                'user-agent']
+    defaultObservableDatatype = ['autonomous-system', 'domain', 'file', 'filename', 'fqdn', 'hash', 'ip', 'mail', 'mail_subject', 'other', 'regexp', 'registry', 'uri_path', 'url', 'user-agent']
 
     artifacts = []
     for artifact in offense['artifacts']:
         if artifact['dataType'] in defaultObservableDatatype:
-            hiveArtifact = theHiveConnector.craftAlertArtifact(dataType=artifact['dataType'], data=artifact['data'], message=artifact['message'], tags=artifact['tags'])
+            hiveArtifact = theHiveConnector.craftAlertArtifact(dataType=artifact['dataType'], data=artifact['data'], message=artifact['message'], tags=artifact.get('tags', []))
         else:
             tags = list()
             tags.append('type:' + artifact['dataType'])
@@ -148,7 +130,7 @@ def qradarOffenseToHiveAlert(theHiveConnector, offense):
 
 def allOffense2Alert():
     """
-       Get all openned offense created within the last 
+       Get all open offenses created within the last
        <timerange> minutes and creates alerts for them in
        TheHive
     """
@@ -166,13 +148,13 @@ def allOffense2Alert():
         theHiveConnector = TheHiveConnector(cfg)
 
         offensesList = qradarConnector.getOffensesAfter()
-        
+
         offenseLastId = int(cfg.get('QRadar', 'offense_id_after'))
 
-        #each offenses in the list is represented as a dict
-        #we enrich this dict with additional details
+        # each offense in the list is represented as a dict
+        # we enrich this dict with additional details
         for offense in offensesList:
-            #searching if the offense has already been converted to alert
+            # searching if the offense has already been converted to alert
             q = dict()
             q['sourceRef'] = str(offense['id'])
             logger.info('Looking for offense %s in TheHive alerts', str(offense['id']))
@@ -201,17 +183,17 @@ def allOffense2Alert():
                 report['offenses'].append(offense_report)
             else:
                 logger.info('Offense %s already imported as alert', str(offense['id']))
-        
+
         cfg['QRadar']['offense_id_after'] = str(offenseLastId)
         setConf(cfg)
 
     except Exception as e:
-            logger.error('Failed to create alert from QRadar offense (retrieving offenses failed)', exc_info=True)
-            report['success'] = False
-            report['message'] = "%s: Failed to create alert from offense" % str(e)
-    
+        logger.error('Failed to create alert from QRadar offense (retrieving offenses failed)', exc_info=True)
+        report['success'] = False
+        report['message'] = "%s: Failed to create alert from offense" % str(e)
+
     return report
-            
+
 def craftAlertDescription(offense):
     """
         From the offense metadata, crafts a nice description in markdown
