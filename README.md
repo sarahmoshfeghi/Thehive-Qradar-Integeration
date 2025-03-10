@@ -1,9 +1,9 @@
-# **MISP-QRadar-TheHive Integration**
+# **TheHive Qradar Integration**
 
 ## **Overview**
 This project is a modified and enhanced version of an existing integration between **IBM QRadar** and **TheHive**. It automates the process of fetching offenses from QRadar, converting them into alerts, and importing them into TheHive. Additionally, it provides a structured configuration setup and a modular approach for seamless integration.
 
-The core functionality is handled by **smart_clonner.py**, which runs as a scheduled service every hour. The configuration settings, including API keys and URLs, are stored in **conf/smartclonner.conf**. The project also includes connectors for **QRadar** and **TheHive**, ensuring efficient communication between these platforms.
+The core functionality is handled by **smart_cloner.py**, which runs as a scheduled service every hour. The configuration settings, including API keys and URLs, are stored in **conf/smartclonner.conf**. The project also includes connectors for **QRadar** and **TheHive**, ensuring efficient communication between these platforms.
 
 ## **How It Works**
 1. **Fetching QRadar Offenses**: The script retrieves offenses from QRadar using its API.
@@ -42,6 +42,11 @@ python3 smart_clonner.py
 #### **Scheduled Execution (Crontab Example - Every Hour):**
 ```bash
 0 * * * * /usr/bin/python3 /path/to/smart_clonner.py
+```
+
+```service
+sudo systemctl enable thehive-qradar.service
+sudo systemctl start thehive-qradar.service
 ```
 
 ## **Project Structure**
