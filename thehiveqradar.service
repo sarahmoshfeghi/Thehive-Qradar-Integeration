@@ -1,0 +1,14 @@
+
+[Unit]
+Description=Thehive ticket append  service
+
+[Service]
+Type=simple
+WorkingDirectory=/pathtothesmartcloner/
+ExecStart=/bin/bash -c 'source /ticketingenv/bin/activate  && python3 smart_cloner.py'
+Restart=always
+StandardOutput=file:/var/log/thehive.log
+StandardError=file:/var/log/thehive.err
+
+[Install]
+WantedBy=multi-user.target
