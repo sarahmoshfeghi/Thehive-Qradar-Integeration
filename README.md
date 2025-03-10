@@ -45,17 +45,24 @@ python3 smart_clonner.py
 ```
 
 ```service
+systemctl daemon-reload
 sudo systemctl enable thehive-qradar.service
 sudo systemctl start thehive-qradar.service
+sudo systemctl enable thehive-qradar.timer
+sudo systemctl start thehive-qradar.timer
 ```
 
 ## **Project Structure**
 ```
 ├── conf/
 │   ├── smartclonner.conf      # Configuration file (API keys, URLs, etc.)
-├── object/
-│   ├── connector.py           # Connectors for TheHive and QRadar
-├── smart_clonner.py           # Main script to fetch and process offenses
+├── objects/
+│   ├── offense2alert.py       # Convert offence to thehive alert
+│   ├── qradar_connector.py    # Connectors for  QRadar
+│   ├── thehive_connector.py   # Connectors for TheHive 
+├── smart_cloner.py            # Main script to fetch and process offenses
+├── thehive-qradar.service     # service
+├── thehive-qradar.timer       # service timer
 ├── README.md                  # Project documentation
 ```
 
